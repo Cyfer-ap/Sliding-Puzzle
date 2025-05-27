@@ -3,8 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fruit Cutter</title>
+    <title>Sliding Puzzle Game</title>
     <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --primary-color: #4f46e5;
+            --primary-hover: #3730a3;
+            --tile-bg: #e5e7eb;
+            --tile-text: #374151;
+            --tile-hover: #d1d5db;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1f2937;
+            --card-bg: #374151;
+            --text-color: #f9fafb;
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --tile-bg: #4b5563;
+            --tile-text: #f9fafb;
+            --tile-hover: #6b7280;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,665 +37,1130 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
-            overflow: hidden;
-            height: 100vh;
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-        }
-
-        #gameCanvas {
-            display: block;
-            background: transparent;
-            cursor: crosshair;
-            touch-action: none;
-        }
-
-        .ui-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
-
-        .score-panel {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .lives-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-
-        .heart {
-            color: #ff4757;
-            margin: 0 2px;
-        }
-
-        .start-screen, .game-over-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            color: white;
+            padding: 20px;
+            transition: var(--transition);
+        }
+
+        .game-container {
+            max-width: 600px;
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+            transition: var(--transition);
+        }
+
+        .header {
             text-align: center;
-            pointer-events: all;
+            margin-bottom: 24px;
         }
 
-        .start-screen h1, .game-over-screen h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--primary-color);
         }
 
-        .start-screen p, .game-over-screen p {
-            font-size: 18px;
-            margin-bottom: 30px;
+        .subtitle {
+            color: var(--text-color);
+            opacity: 0.7;
+            font-size: 1rem;
+        }
+
+        .game-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--tile-bg);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin: 24px 0;
+            padding: 16px;
+            background: var(--tile-bg);
+            border-radius: var(--border-radius);
+            aspect-ratio: 1;
             max-width: 400px;
-            line-height: 1.5;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .tile {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--card-bg);
+            border-radius: 8px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--tile-text);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            user-select: none;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tile:hover {
+            background: var(--tile-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .tile.movable {
+            border-color: var(--primary-color);
+        }
+
+        .tile.empty {
+            background: transparent;
+            box-shadow: none;
+            cursor: default;
+        }
+
+        .tile.empty:hover {
+            background: transparent;
+            transform: none;
+        }
+
+        .tile.hint {
+            background: var(--primary-color);
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .tile.shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 24px;
         }
 
         .btn {
-            padding: 15px 30px;
-            font-size: 20px;
+            padding: 12px 24px;
             border: none;
-            border-radius: 25px;
-            background: linear-gradient(45deg, #ff6b6b, #feca57);
-            color: white;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin: 10px;
+            transition: var(--transition);
+            background: var(--primary-color);
+            color: white;
+            box-shadow: var(--shadow);
         }
 
         .btn:hover {
+            background: var(--primary-hover);
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
 
-        .pause-btn {
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background: var(--tile-bg);
+            color: var(--text-color);
+        }
+
+        .btn.secondary:hover {
+            background: var(--tile-hover);
+        }
+
+        .theme-toggle {
             position: absolute;
             top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 20px;
-            font-size: 16px;
+            right: 20px;
+            background: var(--tile-bg);
             border: none;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.2);
-            color: white;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
             cursor: pointer;
-            pointer-events: all;
-            backdrop-filter: blur(10px);
+            font-size: 1.25rem;
+            transition: var(--transition);
         }
 
-        .combo-display {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 36px;
-            font-weight: bold;
-            color: #feca57;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        .theme-toggle:hover {
+            background: var(--tile-hover);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
             opacity: 0;
-            transition: opacity 0.5s;
-            pointer-events: none;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 32px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            max-width: 400px;
+            margin: 20px;
+            transform: scale(0.9);
+            transition: var(--transition);
+        }
+
+        .modal.show .modal-content {
+            transform: scale(1);
+        }
+
+        .win-title {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 16px;
+        }
+
+        .win-stats {
+            margin: 20px 0;
+            font-size: 1.125rem;
+        }
+
+        .best-score {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .help-content {
+            text-align: left;
+            line-height: 1.6;
+        }
+
+        .help-content h3 {
+            color: var(--primary-color);
+            margin: 16px 0 8px 0;
+        }
+
+        .help-content ul {
+            margin-left: 20px;
+            margin-bottom: 16px;
+        }
+
+        .size-selector {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .size-btn {
+            padding: 8px 16px;
+            background: var(--tile-bg);
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--text-color);
+        }
+
+        .size-btn.active {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
         }
 
         @media (max-width: 768px) {
-            .start-screen h1, .game-over-screen h1 {
-                font-size: 36px;
+            .game-container {
+                padding: 16px;
             }
 
-            .score-panel, .lives-panel {
-                font-size: 20px;
+            .title {
+                font-size: 1.5rem;
+            }
+
+            .game-board {
+                gap: 6px;
+                padding: 12px;
+            }
+
+            .tile {
+                font-size: 1rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
             }
 
             .btn {
-                padding: 12px 24px;
-                font-size: 18px;
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+
+        .grid-3x3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid-5x5 {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .grid-5x5 .tile {
+            font-size: 1rem;
+        }
+
+        @media (max-width: 480px) {
+            .grid-5x5 .tile {
+                font-size: 0.875rem;
             }
         }
     </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
 
-<div class="ui-overlay">
-    <div class="score-panel">
-        <div>Score: <span id="currentScore">0</span></div>
-        <div>High Score: <span id="highScore">0</span></div>
+<div class="game-container">
+    <div class="header">
+        <h1 class="title">Sliding Puzzle</h1>
+        <p class="subtitle">Arrange the numbers from 1 to 15</p>
     </div>
 
-    <div class="lives-panel">
-        Lives: <span id="livesDisplay"></span>
+    <div class="size-selector">
+        <button class="size-btn" data-size="3">3×3</button>
+        <button class="size-btn active" data-size="4">4×4</button>
+        <button class="size-btn" data-size="5">5×5</button>
     </div>
 
-    <button class="pause-btn" id="pauseBtn" style="display: none;">Pause</button>
+    <div class="game-stats">
+        <div class="stat-card">
+            <div class="stat-value" id="moveCount">0</div>
+            <div class="stat-label">Moves</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="timer">00:00</div>
+            <div class="stat-label">Time</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="bestMoves">--</div>
+            <div class="stat-label">Best Moves</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="bestTime">--:--</div>
+            <div class="stat-label">Best Time</div>
+        </div>
+    </div>
 
-    <div class="combo-display" id="comboDisplay"></div>
+    <div class="game-board" id="gameBoard"></div>
+
+    <div class="controls">
+        <button class="btn" id="shuffleBtn">New Game</button>
+        <button class="btn secondary" id="hintBtn">Hint</button>
+        <button class="btn secondary" id="undoBtn">Undo</button>
+        <button class="btn secondary" id="helpBtn">Help</button>
+        <button class="btn secondary" id="resetScoresBtn">Reset Scores</button>
+    </div>
 </div>
 
-<div class="start-screen" id="startScreen">
-    <h1>🍎 Fruit Cutter 🍊</h1>
-    <p>Slice fruits by dragging your mouse or swiping on mobile!<br>
-        Avoid bombs at all costs - they end the game instantly!<br>
-        Get combos by slicing multiple fruits in one swipe!</p>
-    <button class="btn" id="startBtn">Start Game</button>
+<!-- Win Modal -->
+<div class="modal" id="winModal">
+    <div class="modal-content">
+        <h2 class="win-title">🎉 Congratulations!</h2>
+        <div class="win-stats">
+            <p>Moves: <span id="finalMoves"></span></p>
+            <p>Time: <span id="finalTime"></span></p>
+            <p id="newRecord" class="best-score" style="display: none;">New Best Score!</p>
+        </div>
+        <button class="btn" id="playAgainBtn">Play Again</button>
+    </div>
 </div>
 
-<div class="game-over-screen" id="gameOverScreen" style="display: none;">
-    <h1>💥 Game Over! 💥</h1>
-    <p id="finalScoreText">Your Score: 0</p>
-    <p id="highScoreText">High Score: 0</p>
-    <button class="btn" id="restartBtn">Play Again</button>
-    <button class="btn" id="menuBtn">Main Menu</button>
+<!-- Help Modal -->
+<div class="modal" id="helpModal">
+    <div class="modal-content">
+        <h2 class="win-title">How to Play</h2>
+        <div class="help-content">
+            <h3>Goal</h3>
+            <p>Arrange the numbered tiles in order from 1 to 15 (or the highest number for your grid size).</p>
+
+            <h3>Controls</h3>
+            <ul>
+                <li><strong>Click/Tap:</strong> Move a tile adjacent to the empty space</li>
+                <li><strong>Arrow Keys:</strong> Move the empty space around</li>
+                <li><strong>Hint:</strong> Highlights a good move to make</li>
+                <li><strong>Undo:</strong> Take back your last move</li>
+            </ul>
+
+            <h3>Features</h3>
+            <ul>
+                <li>Multiple grid sizes (3×3, 4×4, 5×5)</li>
+                <li>Best scores tracking</li>
+                <li>Dark/Light theme toggle</li>
+                <li>Responsive design for mobile</li>
+            </ul>
+        </div>
+        <button class="btn" id="closeHelpBtn">Got it!</button>
+    </div>
 </div>
 
 <script>
-    class FruitCutter {
+    class SlidingPuzzle {
         constructor() {
-            this.canvas = document.getElementById('gameCanvas');
-            this.ctx = this.canvas.getContext('2d');
-            this.setupCanvas();
+            this.size = 4;
+            this.board = [];
+            this.emptyPos = { row: 0, col: 0 };
+            this.moves = 0;
+            this.startTime = null;
+            this.elapsedTime = 0;
+            this.timerInterval = null;
+            this.gameStarted = false;
+            this.isWon = false;
+            this.moveHistory = [];
+            this.hintTile = null;
 
-            // Game state
-            this.gameState = 'menu'; // 'menu', 'playing', 'paused', 'gameOver'
-            this.score = 0;
-            this.lives = 3;
-            this.highScore = parseInt(localStorage.getItem('fruitCutterHighScore') || '0');
-
-            // Game objects
-            this.fruits = [];
-            this.bombs = [];
-            this.particles = [];
-            this.sliceTrail = [];
-
-            // Combo system
-            this.combo = 0;
-            this.comboTimer = 0;
-            this.comboThreshold = 1000; // ms
-
-            // Input handling
-            this.isSlicing = false;
-            this.lastMousePos = { x: 0, y: 0 };
-            this.sliceSpeed = 0;
-
-            // Timing
-            this.lastSpawnTime = 0;
-            this.spawnInterval = 2000; // ms
-            this.lastFrameTime = 0;
-
+            this.initializeElements();
+            this.loadBestScores();
             this.setupEventListeners();
-            this.updateUI();
-            this.gameLoop();
+            this.initializeGame();
+            this.loadTheme();
         }
 
-        setupCanvas() {
-            this.canvas.width = window.innerWidth;
-            this.canvas.height = window.innerHeight;
-
-            window.addEventListener('resize', () => {
-                this.canvas.width = window.innerWidth;
-                this.canvas.height = window.innerHeight;
-            });
+        initializeElements() {
+            this.gameBoard = document.getElementById('gameBoard');
+            this.moveCountEl = document.getElementById('moveCount');
+            this.timerEl = document.getElementById('timer');
+            this.bestMovesEl = document.getElementById('bestMoves');
+            this.bestTimeEl = document.getElementById('bestTime');
+            this.winModal = document.getElementById('winModal');
+            this.helpModal = document.getElementById('helpModal');
         }
 
         setupEventListeners() {
-            // Mouse events
-            this.canvas.addEventListener('mousedown', (e) => this.startSlice(e.clientX, e.clientY));
-            this.canvas.addEventListener('mousemove', (e) => this.updateSlice(e.clientX, e.clientY));
-            this.canvas.addEventListener('mouseup', () => this.endSlice());
+            // Control buttons
+            document.getElementById('shuffleBtn').addEventListener('click', () => this.newGame());
+            document.getElementById('undoBtn').addEventListener('click', () => this.undoMove());
+            document.getElementById('hintBtn').addEventListener('click', () => this.showHint());
+            document.getElementById('helpBtn').addEventListener('click', () => this.showHelp());
+            document.getElementById('resetScoresBtn').addEventListener('click', () => this.resetBestScores());
+            document.getElementById('themeToggle').addEventListener('click', () => this.toggleTheme());
 
-            // Touch events
-            this.canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                this.startSlice(touch.clientX, touch.clientY);
+            // Modal buttons
+            document.getElementById('playAgainBtn').addEventListener('click', () => {
+                this.hideModal('winModal');
+                this.newGame();
+            });
+            document.getElementById('closeHelpBtn').addEventListener('click', () => this.hideModal('helpModal'));
+
+            // Size selector
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.addEventListener('click', () => this.changeSize(parseInt(btn.dataset.size)));
             });
 
-            this.canvas.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                this.updateSlice(touch.clientX, touch.clientY);
+            // Keyboard controls
+            document.addEventListener('keydown', (e) => this.handleKeyPress(e));
+
+            // Modal close on backdrop click
+            [this.winModal, this.helpModal].forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        this.hideModal(modal.id);
+                    }
+                });
             });
 
-            this.canvas.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                this.endSlice();
+            // Visibility change for timer pause
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && this.timerInterval) {
+                    this.pauseTimer();
+                } else if (!document.hidden && this.gameStarted && !this.isWon) {
+                    this.resumeTimer();
+                }
             });
-
-            // UI buttons
-            document.getElementById('startBtn').addEventListener('click', () => this.startGame());
-            document.getElementById('restartBtn').addEventListener('click', () => this.startGame());
-            document.getElementById('menuBtn').addEventListener('click', () => this.showMenu());
-            document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
         }
 
-        startSlice(x, y) {
-            if (this.gameState !== 'playing') return;
+        changeSize(newSize) {
+            if (newSize === this.size) return;
 
-            this.isSlicing = true;
-            this.lastMousePos = { x, y };
-            this.sliceTrail = [{ x, y, time: Date.now() }];
+            this.size = newSize;
+            this.gameBoard.className = `game-board grid-${newSize}x${newSize}`;
+
+            // Update active size button
+            document.querySelectorAll('.size-btn').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.size) === newSize);
+            });
+
+            this.loadBestScores();
+            this.initializeGame();
         }
 
-        updateSlice(x, y) {
-            if (!this.isSlicing || this.gameState !== 'playing') return;
+        initializeGame() {
+            this.board = this.createSolvedBoard();
+            this.emptyPos = { row: this.size - 1, col: this.size - 1 };
+            this.moves = 0;
+            this.elapsedTime = 0;
+            this.gameStarted = false;
+            this.isWon = false;
+            this.moveHistory = [];
+            this.hintTile = null;
 
-            const dx = x - this.lastMousePos.x;
-            const dy = y - this.lastMousePos.y;
-            this.sliceSpeed = Math.sqrt(dx * dx + dy * dy);
+            this.clearTimer();
+            this.updateDisplay();
+            this.renderBoard();
+            this.shuffle();
+        }
 
-            this.lastMousePos = { x, y };
-            this.sliceTrail.push({ x, y, time: Date.now() });
+        createSolvedBoard() {
+            const board = [];
+            let num = 1;
 
-            // Keep trail length manageable
-            if (this.sliceTrail.length > 10) {
-                this.sliceTrail.shift();
+            for (let row = 0; row < this.size; row++) {
+                board[row] = [];
+                for (let col = 0; col < this.size; col++) {
+                    if (row === this.size - 1 && col === this.size - 1) {
+                        board[row][col] = 0; // Empty space
+                    } else {
+                        board[row][col] = num++;
+                    }
+                }
             }
-
-            // Check for fruit/bomb hits
-            this.checkSliceHits(x, y);
+            return board;
         }
 
-        endSlice() {
-            this.isSlicing = false;
-            this.sliceTrail = [];
-        }
+        shuffle() {
+            // Perform random valid moves to ensure solvability
+            const moves = this.size * this.size * 50; // More moves for better shuffling
 
-        checkSliceHits(x, y) {
-            let hitCount = 0;
-
-            // Check fruits
-            for (let i = this.fruits.length - 1; i >= 0; i--) {
-                const fruit = this.fruits[i];
-                const dist = Math.sqrt((x - fruit.x) ** 2 + (y - fruit.y) ** 2);
-
-                if (dist < fruit.size && !fruit.sliced) {
-                    this.sliceFruit(fruit, i);
-                    hitCount++;
+            for (let i = 0; i < moves; i++) {
+                const directions = this.getValidMoves(this.emptyPos.row, this.emptyPos.col);
+                if (directions.length > 0) {
+                    const randomDir = directions[Math.floor(Math.random() * directions.length)];
+                    this.moveEmptySpace(randomDir.row, randomDir.col, false);
                 }
             }
 
-            // Check bombs
-            for (let i = this.bombs.length - 1; i >= 0; i--) {
-                const bomb = this.bombs[i];
-                const dist = Math.sqrt((x - bomb.x) ** 2 + (y - bomb.y) ** 2);
+            // Reset game state after shuffling
+            this.moves = 0;
+            this.elapsedTime = 0;
+            this.gameStarted = false;
+            this.moveHistory = [];
+            this.updateDisplay();
+            this.renderBoard();
+        }
 
-                if (dist < bomb.size) {
-                    this.explodeBomb(bomb);
-                    this.gameOver();
+        getValidMoves(emptyRow, emptyCol) {
+            const moves = [];
+            const directions = [
+                { row: -1, col: 0 }, // Up
+                { row: 1, col: 0 },  // Down
+                { row: 0, col: -1 }, // Left
+                { row: 0, col: 1 }   // Right
+            ];
+
+            directions.forEach(dir => {
+                const newRow = emptyRow + dir.row;
+                const newCol = emptyCol + dir.col;
+
+                if (newRow >= 0 && newRow < this.size && newCol >= 0 && newCol < this.size) {
+                    moves.push({ row: newRow, col: newCol });
+                }
+            });
+
+            return moves;
+        }
+
+        moveEmptySpace(tileRow, tileCol, countMove = true) {
+            // Swap empty space with the tile
+            const temp = this.board[this.emptyPos.row][this.emptyPos.col];
+            this.board[this.emptyPos.row][this.emptyPos.col] = this.board[tileRow][tileCol];
+            this.board[tileRow][tileCol] = temp;
+
+            if (countMove) {
+                // Save move for undo
+                this.moveHistory.push({
+                    from: { row: this.emptyPos.row, col: this.emptyPos.col },
+                    to: { row: tileRow, col: tileCol }
+                });
+
+                // Limit undo history to prevent memory bloat
+                if (this.moveHistory.length > 100) {
+                    this.moveHistory.shift();
+                }
+            }
+
+            // Update empty position
+            this.emptyPos = { row: tileRow, col: tileCol };
+
+            if (countMove) {
+                this.moves++;
+                this.updateDisplay();
+
+                if (!this.gameStarted) {
+                    this.startGame();
+                }
+
+                if (this.isSolved()) {
+                    this.winGame();
+                }
+            }
+        }
+
+        canMoveTile(row, col) {
+            const rowDiff = Math.abs(row - this.emptyPos.row);
+            const colDiff = Math.abs(col - this.emptyPos.col);
+            return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+        }
+
+        moveTile(row, col) {
+            if (this.isWon || !this.canMoveTile(row, col)) {
+                // Shake animation for invalid moves
+                const tile = this.gameBoard.children[row * this.size + col];
+                tile.classList.add('shake');
+                setTimeout(() => tile.classList.remove('shake'), 500);
+                return false;
+            }
+
+            this.clearHint();
+            this.moveEmptySpace(row, col);
+            this.renderBoard();
+            return true;
+        }
+
+        handleKeyPress(e) {
+            if (this.isWon) return;
+
+            const keyMoves = {
+                'ArrowUp': { row: -1, col: 0 },
+                'ArrowDown': { row: 1, col: 0 },
+                'ArrowLeft': { row: 0, col: -1 },
+                'ArrowRight': { row: 0, col: 1 }
+            };
+
+            if (keyMoves[e.key]) {
+                e.preventDefault();
+                const move = keyMoves[e.key];
+                const newRow = this.emptyPos.row + move.row;
+                const newCol = this.emptyPos.col + move.col;
+
+                if (newRow >= 0 && newRow < this.size && newCol >= 0 && newCol < this.size) {
+                    this.clearHint();
+                    this.moveEmptySpace(newRow, newCol);
+                    this.renderBoard();
+                }
+            }
+        }
+
+        undoMove() {
+            if (this.moveHistory.length === 0 || this.isWon) return;
+
+            const lastMove = this.moveHistory.pop();
+
+            // Reverse the move without counting it
+            const temp = this.board[lastMove.from.row][lastMove.from.col];
+            this.board[lastMove.from.row][lastMove.from.col] = this.board[lastMove.to.row][lastMove.to.col];
+            this.board[lastMove.to.row][lastMove.to.col] = temp;
+
+            this.emptyPos = lastMove.from;
+            this.moves--;
+            this.clearHint();
+            this.updateDisplay();
+            this.renderBoard();
+        }
+
+        showHint() {
+            if (this.isWon) return;
+
+            this.clearHint();
+
+            // Simple hint: find a tile that's in the wrong position and can be moved
+            const validMoves = this.getValidMoves(this.emptyPos.row, this.emptyPos.col);
+
+            for (const move of validMoves) {
+                const tileValue = this.board[move.row][move.col];
+                const correctPos = this.getCorrectPosition(tileValue);
+
+                // Check if moving this tile gets it closer to correct position
+                if (move.row !== correctPos.row || move.col !== correctPos.col) {
+                    this.hintTile = { row: move.row, col: move.col };
+                    this.renderBoard();
+
+                    // Clear hint after 3 seconds
+                    setTimeout(() => this.clearHint(), 3000);
                     return;
                 }
             }
 
-            // Handle combos
-            if (hitCount > 0) {
-                this.combo += hitCount;
-                this.comboTimer = Date.now();
+            // If no obvious hint, just highlight a random movable tile
+            if (validMoves.length > 0) {
+                const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+                this.hintTile = { row: randomMove.row, col: randomMove.col };
+                this.renderBoard();
+                setTimeout(() => this.clearHint(), 3000);
             }
         }
 
-        sliceFruit(fruit, index) {
-            fruit.sliced = true;
-            this.score++;
-
-            // Create juice particles
-            for (let i = 0; i < 8; i++) {
-                this.particles.push({
-                    x: fruit.x,
-                    y: fruit.y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
-                    color: fruit.color,
-                    size: Math.random() * 5 + 2,
-                    life: 1,
-                    decay: 0.02
-                });
-            }
-
-            // Remove fruit after animation
-            setTimeout(() => {
-                const idx = this.fruits.indexOf(fruit);
-                if (idx > -1) this.fruits.splice(idx, 1);
-            }, 100);
+        clearHint() {
+            this.hintTile = null;
+            this.renderBoard();
         }
 
-        explodeBomb(bomb) {
-            // Create explosion particles
-            for (let i = 0; i < 20; i++) {
-                this.particles.push({
-                    x: bomb.x,
-                    y: bomb.y,
-                    vx: (Math.random() - 0.5) * 20,
-                    vy: (Math.random() - 0.5) * 20,
-                    color: '#ff4757',
-                    size: Math.random() * 8 + 3,
-                    life: 1,
-                    decay: 0.015
-                });
-            }
-        }
+        getCorrectPosition(value) {
+            if (value === 0) return { row: this.size - 1, col: this.size - 1 };
 
-        spawnFruit() {
-            const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd'];
-            const emojis = ['🍎', '🍊', '🍌', '🍇', '🍓', '🥝'];
-
-            const fruit = {
-                x: Math.random() * (this.canvas.width - 100) + 50,
-                y: this.canvas.height + 50,
-                vx: (Math.random() - 0.5) * 8,
-                vy: -Math.random() * 8 - 12,
-                size: Math.random() * 20 + 30,
-                color: colors[Math.floor(Math.random() * colors.length)],
-                emoji: emojis[Math.floor(Math.random() * emojis.length)],
-                rotation: 0,
-                rotationSpeed: (Math.random() - 0.5) * 0.2,
-                sliced: false,
-                gravity: 0.3
+            const index = value - 1;
+            return {
+                row: Math.floor(index / this.size),
+                col: index % this.size
             };
-
-            this.fruits.push(fruit);
         }
 
-        spawnBomb() {
-            const bomb = {
-                x: Math.random() * (this.canvas.width - 100) + 50,
-                y: this.canvas.height + 50,
-                vx: (Math.random() - 0.5) * 6,
-                vy: -Math.random() * 6 - 10,
-                size: 35,
-                rotation: 0,
-                rotationSpeed: (Math.random() - 0.5) * 0.1,
-                gravity: 0.3,
-                fuse: Math.random() * 0.5 + 0.5
-            };
+        isSolved() {
+            let expectedValue = 1;
 
-            this.bombs.push(bomb);
-        }
-
-        updateGame(deltaTime) {
-            if (this.gameState !== 'playing') return;
-
-            // Spawn fruits and bombs
-            const now = Date.now();
-            if (now - this.lastSpawnTime > this.spawnInterval) {
-                this.spawnFruit();
-
-                // 20% chance to spawn bomb
-                if (Math.random() < 0.2) {
-                    this.spawnBomb();
-                }
-
-                this.lastSpawnTime = now;
-
-                // Gradually increase difficulty
-                this.spawnInterval = Math.max(800, this.spawnInterval - 10);
-            }
-
-            // Update fruits
-            for (let i = this.fruits.length - 1; i >= 0; i--) {
-                const fruit = this.fruits[i];
-
-                fruit.x += fruit.vx;
-                fruit.y += fruit.vy;
-                fruit.vy += fruit.gravity;
-                fruit.rotation += fruit.rotationSpeed;
-
-                // Remove fruits that fall off screen or are sliced
-                if (fruit.y > this.canvas.height + 100) {
-                    if (!fruit.sliced) {
-                        this.lives--;
-                        if (this.lives <= 0) {
-                            this.gameOver();
-                            return;
-                        }
-                    }
-                    this.fruits.splice(i, 1);
-                }
-            }
-
-            // Update bombs
-            for (let i = this.bombs.length - 1; i >= 0; i--) {
-                const bomb = this.bombs[i];
-
-                bomb.x += bomb.vx;
-                bomb.y += bomb.vy;
-                bomb.vy += bomb.gravity;
-                bomb.rotation += bomb.rotationSpeed;
-                bomb.fuse -= deltaTime / 1000;
-
-                // Remove bombs that fall off screen
-                if (bomb.y > this.canvas.height + 100) {
-                    this.bombs.splice(i, 1);
-                }
-            }
-
-            // Update particles
-            for (let i = this.particles.length - 1; i >= 0; i--) {
-                const particle = this.particles[i];
-
-                particle.x += particle.vx;
-                particle.y += particle.vy;
-                particle.vy += 0.2; // gravity
-                particle.life -= particle.decay;
-
-                if (particle.life <= 0) {
-                    this.particles.splice(i, 1);
-                }
-            }
-
-            // Update combo
-            if (this.combo > 1 && now - this.comboTimer > this.comboThreshold) {
-                this.showCombo();
-                this.combo = 0;
-            }
-
-            this.updateUI();
-        }
-
-        showCombo() {
-            const comboDisplay = document.getElementById('comboDisplay');
-            comboDisplay.textContent = `${this.combo}x COMBO!`;
-            comboDisplay.style.opacity = '1';
-
-            setTimeout(() => {
-                comboDisplay.style.opacity = '0';
-            }, 1000);
-        }
-
-        render() {
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-            // Draw slice trail
-            if (this.sliceTrail.length > 1) {
-                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-                this.ctx.lineWidth = 3;
-                this.ctx.lineCap = 'round';
-                this.ctx.beginPath();
-
-                for (let i = 0; i < this.sliceTrail.length; i++) {
-                    const point = this.sliceTrail[i];
-                    if (i === 0) {
-                        this.ctx.moveTo(point.x, point.y);
+            for (let row = 0; row < this.size; row++) {
+                for (let col = 0; col < this.size; col++) {
+                    if (row === this.size - 1 && col === this.size - 1) {
+                        // Last cell should be empty (0)
+                        if (this.board[row][col] !== 0) return false;
                     } else {
-                        this.ctx.lineTo(point.x, point.y);
+                        if (this.board[row][col] !== expectedValue) return false;
+                        expectedValue++;
                     }
                 }
-
-                this.ctx.stroke();
             }
-
-            // Draw fruits
-            this.fruits.forEach(fruit => {
-                this.ctx.save();
-                this.ctx.translate(fruit.x, fruit.y);
-                this.ctx.rotate(fruit.rotation);
-
-                if (fruit.sliced) {
-                    // Draw sliced fruit effect
-                    this.ctx.globalAlpha = 0.5;
-                    this.ctx.fillStyle = fruit.color;
-                    this.ctx.fillRect(-fruit.size/4, -fruit.size/2, fruit.size/2, fruit.size);
-                    this.ctx.fillRect(fruit.size/4, -fruit.size/2, fruit.size/2, fruit.size);
-                } else {
-                    // Draw whole fruit
-                    this.ctx.font = `${fruit.size}px Arial`;
-                    this.ctx.textAlign = 'center';
-                    this.ctx.textBaseline = 'middle';
-                    this.ctx.fillText(fruit.emoji, 0, 0);
-                }
-
-                this.ctx.restore();
-            });
-
-            // Draw bombs
-            this.bombs.forEach(bomb => {
-                this.ctx.save();
-                this.ctx.translate(bomb.x, bomb.y);
-                this.ctx.rotate(bomb.rotation);
-
-                // Bomb body
-                this.ctx.fillStyle = '#2f3640';
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, bomb.size, 0, Math.PI * 2);
-                this.ctx.fill();
-
-                // Fuse
-                this.ctx.strokeStyle = '#ff4757';
-                this.ctx.lineWidth = 3;
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, -bomb.size);
-                this.ctx.lineTo(0, -bomb.size - 20);
-                this.ctx.stroke();
-
-                // Spark effect on fuse
-                if (Math.random() < 0.3) {
-                    this.ctx.fillStyle = '#feca57';
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, -bomb.size - 20, 3, 0, Math.PI * 2);
-                    this.ctx.fill();
-                }
-
-                this.ctx.restore();
-            });
-
-            // Draw particles
-            this.particles.forEach(particle => {
-                this.ctx.save();
-                this.ctx.globalAlpha = particle.life;
-                this.ctx.fillStyle = particle.color;
-                this.ctx.beginPath();
-                this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.restore();
-            });
+            return true;
         }
 
         startGame() {
-            this.gameState = 'playing';
-            this.score = 0;
-            this.lives = 3;
-            this.combo = 0;
-            this.fruits = [];
-            this.bombs = [];
-            this.particles = [];
-            this.lastSpawnTime = Date.now();
-            this.spawnInterval = 2000;
-
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('gameOverScreen').style.display = 'none';
-            document.getElementById('pauseBtn').style.display = 'block';
-
-            this.updateUI();
+            this.gameStarted = true;
+            this.startTime = Date.now();
+            this.startTimer();
         }
 
-        gameOver() {
-            this.gameState = 'gameOver';
-
-            if (this.score > this.highScore) {
-                this.highScore = this.score;
-                localStorage.setItem('fruitCutterHighScore', this.highScore.toString());
-            }
-
-            document.getElementById('finalScoreText').textContent = `Your Score: ${this.score}`;
-            document.getElementById('highScoreText').textContent = `High Score: ${this.highScore}`;
-            document.getElementById('gameOverScreen').style.display = 'flex';
-            document.getElementById('pauseBtn').style.display = 'none';
+        startTimer() {
+            this.timerInterval = setInterval(() => {
+                this.elapsedTime = Math.floor((Date.now() - this.startTime) / 1000);
+                this.updateDisplay();
+            }, 1000);
         }
 
-        showMenu() {
-            this.gameState = 'menu';
-            document.getElementById('startScreen').style.display = 'flex';
-            document.getElementById('gameOverScreen').style.display = 'none';
-            document.getElementById('pauseBtn').style.display = 'none';
-        }
-
-        togglePause() {
-            if (this.gameState === 'playing') {
-                this.gameState = 'paused';
-                document.getElementById('pauseBtn').textContent = 'Resume';
-            } else if (this.gameState === 'paused') {
-                this.gameState = 'playing';
-                document.getElementById('pauseBtn').textContent = 'Pause';
+        pauseTimer() {
+            if (this.timerInterval) {
+                clearInterval(this.timerInterval);
+                this.timerInterval = null;
             }
         }
 
-        updateUI() {
-            document.getElementById('currentScore').textContent = this.score;
-            document.getElementById('highScore').textContent = this.highScore;
-
-            const livesDisplay = document.getElementById('livesDisplay');
-            livesDisplay.innerHTML = '';
-            for (let i = 0; i < this.lives; i++) {
-                livesDisplay.innerHTML += '<span class="heart">♥</span>';
+        resumeTimer() {
+            if (this.gameStarted && !this.timerInterval) {
+                this.startTime = Date.now() - (this.elapsedTime * 1000);
+                this.startTimer();
             }
         }
 
-        gameLoop() {
-            const currentTime = Date.now();
-            const deltaTime = currentTime - this.lastFrameTime;
-            this.lastFrameTime = currentTime;
+        clearTimer() {
+            if (this.timerInterval) {
+                clearInterval(this.timerInterval);
+                this.timerInterval = null;
+            }
+        }
 
-            this.updateGame(deltaTime);
-            this.render();
+        winGame() {
+            this.isWon = true;
+            this.clearTimer();
 
-            requestAnimationFrame(() => this.gameLoop());
+            const isNewBestMoves = this.updateBestScore('moves', this.moves);
+            const isNewBestTime = this.updateBestScore('time', this.elapsedTime);
+
+            // Show win modal
+            document.getElementById('finalMoves').textContent = this.moves;
+            document.getElementById('finalTime').textContent = this.formatTime(this.elapsedTime);
+
+            const newRecordEl = document.getElementById('newRecord');
+            if (isNewBestMoves || isNewBestTime) {
+                newRecordEl.style.display = 'block';
+            } else {
+                newRecordEl.style.display = 'none';
+            }
+
+            this.showModal('winModal');
+        }
+
+        updateBestScore(type, value) {
+            const key = `best${this.size}x${this.size}${type.charAt(0).toUpperCase() + type.slice(1)}`;
+            const currentBest = localStorage.getItem(key);
+
+            if (!currentBest || value < parseInt(currentBest)) {
+                localStorage.setItem(key, value.toString());
+                this.loadBestScores();
+                return true;
+            }
+            return false;
+        }
+
+        loadBestScores() {
+            const bestMoves = localStorage.getItem(`best${this.size}x${this.size}Moves`);
+            const bestTime = localStorage.getItem(`best${this.size}x${this.size}Time`);
+
+            this.bestMovesEl.textContent = bestMoves || '--';
+            this.bestTimeEl.textContent = bestTime ? this.formatTime(parseInt(bestTime)) : '--:--';
+        }
+
+        resetBestScores() {
+            if (confirm('Are you sure you want to reset all best scores?')) {
+                [3, 4, 5].forEach(size => {
+                    localStorage.removeItem(`best${size}x${size}Moves`);
+                    localStorage.removeItem(`best${size}x${size}Time`);
+                });
+                this.loadBestScores();
+            }
+        }
+
+        formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        updateDisplay() {
+            this.moveCountEl.textContent = this.moves;
+            this.timerEl.textContent = this.formatTime(this.elapsedTime);
+        }
+
+        renderBoard() {
+            this.gameBoard.innerHTML = '';
+
+            for (let row = 0; row < this.size; row++) {
+                for (let col = 0; col < this.size; col++) {
+                    const value = this.board[row][col];
+                    const tile = document.createElement('div');
+
+                    if (value === 0) {
+                        tile.className = 'tile empty';
+                    } else {
+                        tile.className = 'tile';
+                        tile.textContent = value;
+                        tile.setAttribute('tabindex', '0');
+                        tile.setAttribute('role', 'button');
+                        tile.setAttribute('aria-label', `Move tile ${value}`);
+
+                        // Add movable class if tile can be moved
+                        if (this.canMoveTile(row, col)) {
+                            tile.classList.add('movable');
+                        }
+
+                        // Add hint class if this is the hint tile
+                        if (this.hintTile && this.hintTile.row === row && this.hintTile.col === col) {
+                            tile.classList.add('hint');
+                        }
+
+                        // Click handler
+                        tile.addEventListener('click', () => this.moveTile(row, col));
+
+                        // Keyboard handler for accessibility
+                        tile.addEventListener('keydown', (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                this.moveTile(row, col);
+                            }
+                        });
+                    }
+
+                    this.gameBoard.appendChild(tile);
+                }
+            }
+        }
+
+        newGame() {
+            this.clearTimer();
+            this.initializeGame();
+        }
+
+        showModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        showHelp() {
+            this.showModal('helpModal');
+        }
+
+        toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+
+            // Update theme toggle button
+            const themeToggle = document.getElementById('themeToggle');
+            themeToggle.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        }
+
+        loadTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.body.setAttribute('data-theme', savedTheme);
+
+            const themeToggle = document.getElementById('themeToggle');
+            themeToggle.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
         }
     }
 
-    // Start the game when page loads
-    window.addEventListener('load', () => {
-        new FruitCutter();
+    // Initialize the game when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        new SlidingPuzzle();
     });
+
+    // Add some additional utility functions for enhanced features
+
+    // Sound effects (optional - can be enabled/disabled)
+    class SoundManager {
+        constructor() {
+            this.enabled = localStorage.getItem('soundEnabled') !== 'false';
+            this.context = null;
+            this.init();
+        }
+
+        init() {
+            try {
+                this.context = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.log('Web Audio API not supported');
+            }
+        }
+
+        playTone(frequency, duration, type = 'sine') {
+            if (!this.enabled || !this.context) return;
+
+            try {
+                const oscillator = this.context.createOscillator();
+                const gainNode = this.context.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(this.context.destination);
+
+                oscillator.frequency.value = frequency;
+                oscillator.type = type;
+
+                gainNode.gain.setValueAtTime(0.1, this.context.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + duration);
+
+                oscillator.start(this.context.currentTime);
+                oscillator.stop(this.context.currentTime + duration);
+            } catch (e) {
+                console.log('Sound playback failed');
+            }
+        }
+
+        playMoveSound() {
+            this.playTone(800, 0.1);
+        }
+
+        playWinSound() {
+            // Play a sequence of tones for win
+            setTimeout(() => this.playTone(523, 0.2), 0);    // C
+            setTimeout(() => this.playTone(659, 0.2), 200);  // E
+            setTimeout(() => this.playTone(784, 0.2), 400);  // G
+            setTimeout(() => this.playTone(1047, 0.4), 600); // C (octave)
+        }
+
+        playErrorSound() {
+            this.playTone(200, 0.3, 'sawtooth');
+        }
+
+        toggle() {
+            this.enabled = !this.enabled;
+            localStorage.setItem('soundEnabled', this.enabled);
+            return this.enabled;
+        }
+    }
+
+    // Enhanced puzzle with sound integration
+    class EnhancedSlidingPuzzle extends SlidingPuzzle {
+        constructor() {
+            super();
+            this.soundManager = new SoundManager();
+            this.addSoundToggle();
+        }
+
+        moveTile(row, col) {
+            const moved = super.moveTile(row, col);
+            if (moved) {
+                this.soundManager.playMoveSound();
+            } else {
+                this.soundManager.playErrorSound();
+            }
+            return moved;
+        }
+
+        winGame() {
+            super.winGame();
+            this.soundManager.playWinSound();
+        }
+
+        addSoundToggle() {
+            const soundToggle = document.createElement('button');
+            soundToggle.className = 'theme-toggle';
+            soundToggle.style.right = '80px';
+            soundToggle.textContent = this.soundManager.enabled ? '🔊' : '🔇';
+            soundToggle.setAttribute('aria-label', 'Toggle sound effects');
+
+            soundToggle.addEventListener('click', () => {
+                const enabled = this.soundManager.toggle();
+                soundToggle.textContent = enabled ? '🔊' : '🔇';
+            });
+
+            document.body.appendChild(soundToggle);
+        }
+    }
+
+    // Performance optimization utilities
+    class PerformanceManager {
+        static debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        static throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            };
+        }
+    }
+
+    // Replace the basic initialization with enhanced version
+    document.addEventListener('DOMContentLoaded', () => {
+        // Check if Web Audio API is supported for enhanced version
+        if (window.AudioContext || window.webkitAudioContext) {
+            new EnhancedSlidingPuzzle();
+        } else {
+            new SlidingPuzzle();
+        }
+    });
+
+    // Add service worker registration for offline play (optional)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // Service worker would be registered here for offline functionality
+            console.log('Service Worker support detected');
+        });
+    }
+
+    // Add touch gesture support for mobile
+    class TouchHandler {
+        constructor(element, callback) {
+            this.element = element;
+            this.callback = callback;
+            this.startX = 0;
+            this.startY = 0;
+            this.threshold = 50; // Minimum distance for swipe
+
+            this.element.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: true });
+            this.element.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: true });
+        }
+
+        handleTouchStart(e) {
+            this.startX = e.touches[0].clientX;
+            this.startY = e.touches[0].clientY;
+        }
+
+        handleTouchEnd(e) {
+            if (!this.startX || !this.startY) return;
+
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+
+            const deltaX = endX - this.startX;
+            const deltaY = endY - this.startY;
+
+            const absDeltaX = Math.abs(deltaX);
+            const absDeltaY = Math.abs(deltaY);
+
+            if (Math.max(absDeltaX, absDeltaY) > this.threshold) {
+                if (absDeltaX > absDeltaY) {
+                    // Horizontal swipe
+                    this.callback(deltaX > 0 ? 'right' : 'left');
+                } else {
+                    // Vertical swipe
+                    this.callback(deltaY > 0 ? 'down' : 'up');
+                }
+            }
+
+            this.startX = 0;
+            this.startY = 0;
+        }
+    }
 </script>
 </body>
-</html>< ! - -   f o r c e   d e p l o y   - - >  
- 
+</html>
