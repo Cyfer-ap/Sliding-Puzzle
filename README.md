@@ -42,5 +42,5 @@ In **Fruit Cutter**, fruits are tossed into the air in arcs. The player must sli
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/fruit-cutter-game.git
-cd fruit-cutter-game
+git clone https://github.com/Cyfer-ap/Fruit-Cutter.git
+cd Fruit-Cutter
