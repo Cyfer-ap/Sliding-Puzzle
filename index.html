@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catch the Falling Stars</title>
+    <title>Fruit Cutter</title>
     <style>
         * {
             margin: 0;
@@ -13,569 +13,663 @@
 
         body {
             font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
             overflow: hidden;
-            background: linear-gradient(135deg, #0c0c1e, #1a1a2e, #16213e);
-            color: white;
-            user-select: none;
-        }
-
-        #gameContainer {
-            position: relative;
-            width: 100vw;
             height: 100vh;
-            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
         }
 
-        #backgroundStars {
+        #gameCanvas {
+            display: block;
+            background: transparent;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .ui-overlay {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('data:image/svg+xml,<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><defs><circle id="star" cx="2" cy="2" r="1" fill="white" opacity="0.8"/></defs><use href="%23star" x="20" y="30"/><use href="%23star" x="80" y="60"/><use href="%23star" x="150" y="20"/><use href="%23star" x="40" y="120"/><use href="%23star" x="170" y="150"/><use href="%23star" x="10" y="180"/><use href="%23star" x="120" y="40"/><use href="%23star" x="90" y="170"/></svg>') repeat;
-            animation: twinkle 4s infinite alternate;
+            pointer-events: none;
+            z-index: 10;
         }
 
-        @keyframes twinkle {
-            0% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        #startScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-        }
-
-        #gameTitle {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 2rem;
-            text-shadow: 0 0 20px #ffd700;
-            animation: glow 2s infinite alternate;
-        }
-
-        @keyframes glow {
-            0% { text-shadow: 0 0 20px #ffd700; }
-            100% { text-shadow: 0 0 30px #ffd700, 0 0 40px #ffd700; }
-        }
-
-        #instructions {
-            text-align: center;
-            margin-bottom: 2rem;
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        #startButton {
-            padding: 15px 30px;
-            font-size: 1.5rem;
-            background: linear-gradient(45deg, #ffd700, #ffed4e);
-            color: #333;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-        }
-
-        #startButton:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.5);
-        }
-
-        #gameUI {
+        .score-panel {
             position: absolute;
             top: 20px;
             left: 20px;
-            right: 20px;
-            display: flex;
-            justify-content: space-between;
-            z-index: 100;
-            font-size: 1.5rem;
+            color: white;
+            font-size: 24px;
             font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
-        #score, #highScore, #lives {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px 20px;
-            border-radius: 20px;
-            border: 2px solid #ffd700;
-        }
-
-        #bucket {
+        .lives-panel {
             position: absolute;
-            bottom: 20px;
-            width: 80px;
-            height: 60px;
-            background: linear-gradient(to bottom, #8B4513, #A0522D);
-            border-radius: 0 0 20px 20px;
-            border: 3px solid #654321;
-            transition: left 0.1s ease;
-            cursor: pointer;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
 
-        #bucket::before {
-            content: '';
-            position: absolute;
-            top: -5px;
-            left: -5px;
-            right: -5px;
-            height: 10px;
-            background: #A0522D;
-            border-radius: 10px;
-            border: 2px solid #654321;
+        .heart {
+            color: #ff4757;
+            margin: 0 2px;
         }
 
-        .star {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background: #ffd700;
-            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
-            animation: sparkle 1s infinite alternate;
-            filter: drop-shadow(0 0 10px #ffd700);
-        }
-
-        @keyframes sparkle {
-            0% { transform: scale(1) rotate(0deg); }
-            100% { transform: scale(1.1) rotate(10deg); }
-        }
-
-        @keyframes fall {
-            to { transform: translateY(100vh); }
-        }
-
-        #gameOverScreen {
+        .start-screen, .game-over-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            display: none;
+            background: rgba(0,0,0,0.8);
+            display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 1000;
-        }
-
-        #finalScore {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-            color: #ffd700;
-        }
-
-        #restartButton {
-            padding: 12px 25px;
-            font-size: 1.2rem;
-            background: linear-gradient(45deg, #ff6b6b, #ee5a5a);
             color: white;
+            text-align: center;
+            pointer-events: all;
+        }
+
+        .start-screen h1, .game-over-screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .start-screen p, .game-over-screen p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .pause-btn {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 16px;
             border: none;
             border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 1rem;
+            pointer-events: all;
+            backdrop-filter: blur(10px);
         }
 
-        #restartButton:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-        }
-
-        .catch-effect {
+        .combo-display {
             position: absolute;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(255, 215, 0, 0.8), transparent);
-            animation: catchEffect 0.5s ease-out forwards;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: #feca57;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.5s;
             pointer-events: none;
         }
 
-        @keyframes catchEffect {
-            0% {
-                transform: scale(0);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(2);
-                opacity: 0;
-            }
-        }
-
         @media (max-width: 768px) {
-            #gameTitle {
-                font-size: 2rem;
+            .start-screen h1, .game-over-screen h1 {
+                font-size: 36px;
             }
-            
-            #instructions {
-                font-size: 1rem;
-                padding: 0 20px;
+
+            .score-panel, .lives-panel {
+                font-size: 20px;
             }
-            
-            #gameUI {
-                font-size: 1.2rem;
-            }
-            
-            #bucket {
-                width: 60px;
-                height: 45px;
+
+            .btn {
+                padding: 12px 24px;
+                font-size: 18px;
             }
         }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <div id="backgroundStars"></div>
-        
-        <div id="startScreen">
-            <h1 id="gameTitle">⭐ Catch the Falling Stars ⭐</h1>
-            <div id="instructions">
-                <p>🎯 Catch falling stars with your bucket!</p>
-                <p>🎮 Use arrow keys ← → or mouse to move</p>
-                <p>💫 Don't let 5 stars fall past you!</p>
-                <p>🏆 Beat your high score!</p>
-            </div>
-            <button id="startButton">Start Game</button>
-        </div>
+<canvas id="gameCanvas"></canvas>
 
-        <div id="gameUI">
-            <div id="score">Score: 0</div>
-            <div id="lives">Lives: 5</div>
-            <div id="highScore">High Score: 0</div>
-        </div>
-
-        <div id="bucket"></div>
-
-        <div id="gameOverScreen">
-            <h2>Game Over!</h2>
-            <div id="finalScore">Final Score: 0</div>
-            <p>Better luck next time!</p>
-            <button id="restartButton">Play Again</button>
-        </div>
+<div class="ui-overlay">
+    <div class="score-panel">
+        <div>Score: <span id="currentScore">0</span></div>
+        <div>High Score: <span id="highScore">0</span></div>
     </div>
 
-    <script>
-        class FallingStarsGame {
-            constructor() {
-                this.bucket = document.getElementById('bucket');
-                this.gameContainer = document.getElementById('gameContainer');
-                this.scoreDisplay = document.getElementById('score');
-                this.livesDisplay = document.getElementById('lives');
-                this.highScoreDisplay = document.getElementById('highScore');
-                this.startScreen = document.getElementById('startScreen');
-                this.gameOverScreen = document.getElementById('gameOverScreen');
-                this.finalScoreDisplay = document.getElementById('finalScore');
-                
-                this.score = 0;
-                this.lives = 5;
-                this.gameRunning = false;
-                this.stars = [];
-                this.gameSpeed = 3000; // Initial star spawn interval
-                this.fallSpeed = 3; // Initial fall speed
-                this.bucketSpeed = 15;
-                
-                this.bucketPosition = window.innerWidth / 2 - 40; // Center bucket
-                this.keys = {};
-                
-                // Load high score from memory (simulating localStorage)
-                this.highScore = this.loadHighScore();
-                this.updateHighScoreDisplay();
-                
-                this.init();
+    <div class="lives-panel">
+        Lives: <span id="livesDisplay"></span>
+    </div>
+
+    <button class="pause-btn" id="pauseBtn" style="display: none;">Pause</button>
+
+    <div class="combo-display" id="comboDisplay"></div>
+</div>
+
+<div class="start-screen" id="startScreen">
+    <h1>🍎 Fruit Cutter 🍊</h1>
+    <p>Slice fruits by dragging your mouse or swiping on mobile!<br>
+        Avoid bombs at all costs - they end the game instantly!<br>
+        Get combos by slicing multiple fruits in one swipe!</p>
+    <button class="btn" id="startBtn">Start Game</button>
+</div>
+
+<div class="game-over-screen" id="gameOverScreen" style="display: none;">
+    <h1>💥 Game Over! 💥</h1>
+    <p id="finalScoreText">Your Score: 0</p>
+    <p id="highScoreText">High Score: 0</p>
+    <button class="btn" id="restartBtn">Play Again</button>
+    <button class="btn" id="menuBtn">Main Menu</button>
+</div>
+
+<script>
+    class FruitCutter {
+        constructor() {
+            this.canvas = document.getElementById('gameCanvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.setupCanvas();
+
+            // Game state
+            this.gameState = 'menu'; // 'menu', 'playing', 'paused', 'gameOver'
+            this.score = 0;
+            this.lives = 3;
+            this.highScore = parseInt(localStorage.getItem('fruitCutterHighScore') || '0');
+
+            // Game objects
+            this.fruits = [];
+            this.bombs = [];
+            this.particles = [];
+            this.sliceTrail = [];
+
+            // Combo system
+            this.combo = 0;
+            this.comboTimer = 0;
+            this.comboThreshold = 1000; // ms
+
+            // Input handling
+            this.isSlicing = false;
+            this.lastMousePos = { x: 0, y: 0 };
+            this.sliceSpeed = 0;
+
+            // Timing
+            this.lastSpawnTime = 0;
+            this.spawnInterval = 2000; // ms
+            this.lastFrameTime = 0;
+
+            this.setupEventListeners();
+            this.updateUI();
+            this.gameLoop();
+        }
+
+        setupCanvas() {
+            this.canvas.width = window.innerWidth;
+            this.canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            });
+        }
+
+        setupEventListeners() {
+            // Mouse events
+            this.canvas.addEventListener('mousedown', (e) => this.startSlice(e.clientX, e.clientY));
+            this.canvas.addEventListener('mousemove', (e) => this.updateSlice(e.clientX, e.clientY));
+            this.canvas.addEventListener('mouseup', () => this.endSlice());
+
+            // Touch events
+            this.canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                this.startSlice(touch.clientX, touch.clientY);
+            });
+
+            this.canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                this.updateSlice(touch.clientX, touch.clientY);
+            });
+
+            this.canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                this.endSlice();
+            });
+
+            // UI buttons
+            document.getElementById('startBtn').addEventListener('click', () => this.startGame());
+            document.getElementById('restartBtn').addEventListener('click', () => this.startGame());
+            document.getElementById('menuBtn').addEventListener('click', () => this.showMenu());
+            document.getElementById('pauseBtn').addEventListener('click', () => this.togglePause());
+        }
+
+        startSlice(x, y) {
+            if (this.gameState !== 'playing') return;
+
+            this.isSlicing = true;
+            this.lastMousePos = { x, y };
+            this.sliceTrail = [{ x, y, time: Date.now() }];
+        }
+
+        updateSlice(x, y) {
+            if (!this.isSlicing || this.gameState !== 'playing') return;
+
+            const dx = x - this.lastMousePos.x;
+            const dy = y - this.lastMousePos.y;
+            this.sliceSpeed = Math.sqrt(dx * dx + dy * dy);
+
+            this.lastMousePos = { x, y };
+            this.sliceTrail.push({ x, y, time: Date.now() });
+
+            // Keep trail length manageable
+            if (this.sliceTrail.length > 10) {
+                this.sliceTrail.shift();
             }
-            
-            init() {
-                this.setupEventListeners();
-                this.updateBucketPosition();
-            }
-            
-            setupEventListeners() {
-                // Start button
-                document.getElementById('startButton').addEventListener('click', () => {
-                    this.startGame();
-                });
-                
-                // Restart button
-                document.getElementById('restartButton').addEventListener('click', () => {
-                    this.restartGame();
-                });
-                
-                // Keyboard controls
-                document.addEventListener('keydown', (e) => {
-                    this.keys[e.key] = true;
-                    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                        e.preventDefault();
-                    }
-                });
-                
-                document.addEventListener('keyup', (e) => {
-                    this.keys[e.key] = false;
-                });
-                
-                // Mouse controls
-                document.addEventListener('mousemove', (e) => {
-                    if (this.gameRunning) {
-                        this.bucketPosition = Math.max(0, Math.min(window.innerWidth - 80, e.clientX - 40));
-                        this.updateBucketPosition();
-                    }
-                });
-                
-                // Touch controls for mobile
-                document.addEventListener('touchmove', (e) => {
-                    if (this.gameRunning) {
-                        const touch = e.touches[0];
-                        this.bucketPosition = Math.max(0, Math.min(window.innerWidth - 80, touch.clientX - 40));
-                        this.updateBucketPosition();
-                        e.preventDefault();
-                    }
-                });
-            }
-            
-            startGame() {
-                this.startScreen.style.display = 'none';
-                this.gameRunning = true;
-                this.score = 0;
-                this.lives = 5;
-                this.gameSpeed = 3000;
-                this.fallSpeed = 3;
-                
-                this.updateScore();
-                this.updateLives();
-                
-                this.gameLoop();
-                this.spawnStars();
-            }
-            
-            gameLoop() {
-                if (!this.gameRunning) return;
-                
-                // Handle keyboard movement
-                if (this.keys['ArrowLeft']) {
-                    this.bucketPosition = Math.max(0, this.bucketPosition - this.bucketSpeed);
-                    this.updateBucketPosition();
-                }
-                if (this.keys['ArrowRight']) {
-                    this.bucketPosition = Math.min(window.innerWidth - 80, this.bucketPosition + this.bucketSpeed);
-                    this.updateBucketPosition();
-                }
-                
-                // Update stars
-                this.updateStars();
-                
-                requestAnimationFrame(() => this.gameLoop());
-            }
-            
-            spawnStars() {
-                if (!this.gameRunning) return;
-                
-                this.createStar();
-                
-                // Increase difficulty over time
-                if (this.score > 0 && this.score % 10 === 0) {
-                    this.gameSpeed = Math.max(1000, this.gameSpeed - 100);
-                    this.fallSpeed = Math.min(8, this.fallSpeed + 0.2);
-                }
-                
-                setTimeout(() => this.spawnStars(), this.gameSpeed);
-            }
-            
-            createStar() {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.style.left = Math.random() * (window.innerWidth - 30) + 'px';
-                star.style.top = '-30px';
-                
-                this.gameContainer.appendChild(star);
-                this.stars.push({
-                    element: star,
-                    x: parseFloat(star.style.left),
-                    y: -30,
-                    speed: this.fallSpeed
-                });
-            }
-            
-            updateStars() {
-                this.stars.forEach((star, index) => {
-                    star.y += star.speed;
-                    star.element.style.top = star.y + 'px';
-                    
-                    // Check collision with bucket
-                    if (this.checkCollision(star)) {
-                        this.catchStar(star, index);
-                    }
-                    // Check if star fell past the screen
-                    else if (star.y > window.innerHeight) {
-                        this.missStar(star, index);
-                    }
-                });
-            }
-            
-            checkCollision(star) {
-                const bucketLeft = this.bucketPosition;
-                const bucketRight = this.bucketPosition + 80;
-                const bucketTop = window.innerHeight - 80;
-                
-                return (
-                    star.x + 30 > bucketLeft &&
-                    star.x < bucketRight &&
-                    star.y + 30 > bucketTop &&
-                    star.y < window.innerHeight
-                );
-            }
-            
-            catchStar(star, index) {
-                // Create catch effect
-                this.createCatchEffect(star.x + 15, star.y + 15);
-                
-                // Play catch sound (simulated)
-                this.playSound('catch');
-                
-                // Remove star
-                star.element.remove();
-                this.stars.splice(index, 1);
-                
-                // Increase score
-                this.score++;
-                this.updateScore();
-                
-                // Check for new high score
-                if (this.score > this.highScore) {
-                    this.highScore = this.score;
-                    this.saveHighScore();
-                    this.updateHighScoreDisplay();
+
+            // Check for fruit/bomb hits
+            this.checkSliceHits(x, y);
+        }
+
+        endSlice() {
+            this.isSlicing = false;
+            this.sliceTrail = [];
+        }
+
+        checkSliceHits(x, y) {
+            let hitCount = 0;
+
+            // Check fruits
+            for (let i = this.fruits.length - 1; i >= 0; i--) {
+                const fruit = this.fruits[i];
+                const dist = Math.sqrt((x - fruit.x) ** 2 + (y - fruit.y) ** 2);
+
+                if (dist < fruit.size && !fruit.sliced) {
+                    this.sliceFruit(fruit, i);
+                    hitCount++;
                 }
             }
-            
-            missStar(star, index) {
-                // Play miss sound (simulated)
-                this.playSound('miss');
-                
-                // Remove star
-                star.element.remove();
-                this.stars.splice(index, 1);
-                
-                // Decrease lives
-                this.lives--;
-                this.updateLives();
-                
-                // Check game over
-                if (this.lives <= 0) {
+
+            // Check bombs
+            for (let i = this.bombs.length - 1; i >= 0; i--) {
+                const bomb = this.bombs[i];
+                const dist = Math.sqrt((x - bomb.x) ** 2 + (y - bomb.y) ** 2);
+
+                if (dist < bomb.size) {
+                    this.explodeBomb(bomb);
                     this.gameOver();
+                    return;
                 }
             }
-            
-            createCatchEffect(x, y) {
-                const effect = document.createElement('div');
-                effect.className = 'catch-effect';
-                effect.style.left = (x - 25) + 'px';
-                effect.style.top = (y - 25) + 'px';
-                
-                this.gameContainer.appendChild(effect);
-                
-                setTimeout(() => {
-                    effect.remove();
-                }, 500);
-            }
-            
-            playSound(type) {
-                // Simulated sound effects using Web Audio API
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
-                
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                if (type === 'catch') {
-                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
-                } else if (type === 'miss') {
-                    oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.2);
-                }
-                
-                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.2);
-            }
-            
-            updateBucketPosition() {
-                this.bucket.style.left = this.bucketPosition + 'px';
-            }
-            
-            updateScore() {
-                this.scoreDisplay.textContent = `Score: ${this.score}`;
-            }
-            
-            updateLives() {
-                this.livesDisplay.textContent = `Lives: ${this.lives}`;
-                
-                // Visual feedback for low lives
-                if (this.lives <= 2) {
-                    this.livesDisplay.style.color = '#ff6b6b';
-                    this.livesDisplay.style.animation = 'glow 0.5s infinite alternate';
-                } else {
-                    this.livesDisplay.style.color = 'white';
-                    this.livesDisplay.style.animation = 'none';
-                }
-            }
-            
-            updateHighScoreDisplay() {
-                this.highScoreDisplay.textContent = `High Score: ${this.highScore}`;
-            }
-            
-            gameOver() {
-                this.gameRunning = false;
-                this.finalScoreDisplay.textContent = `Final Score: ${this.score}`;
-                this.gameOverScreen.style.display = 'flex';
-                
-                // Clear remaining stars
-                this.stars.forEach(star => star.element.remove());
-                this.stars = [];
-            }
-            
-            restartGame() {
-                this.gameOverScreen.style.display = 'none';
-                this.startGame();
-            }
-            
-            // Simulate localStorage functionality
-            loadHighScore() {
-                // In a real environment, this would use localStorage.getItem('fallingStarsHighScore')
-                return window.gameHighScore || 0;
-            }
-            
-            saveHighScore() {
-                // In a real environment, this would use localStorage.setItem('fallingStarsHighScore', this.highScore)
-                window.gameHighScore = this.highScore;
+
+            // Handle combos
+            if (hitCount > 0) {
+                this.combo += hitCount;
+                this.comboTimer = Date.now();
             }
         }
-        
-        // Initialize game when page loads
-        window.addEventListener('load', () => {
-            new FallingStarsGame();
-        });
-        
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            const bucket = document.getElementById('bucket');
-            if (bucket) {
-                const bucketPosition = Math.min(parseFloat(bucket.style.left) || 0, window.innerWidth - 80);
-                bucket.style.left = bucketPosition + 'px';
+
+        sliceFruit(fruit, index) {
+            fruit.sliced = true;
+            this.score++;
+
+            // Create juice particles
+            for (let i = 0; i < 8; i++) {
+                this.particles.push({
+                    x: fruit.x,
+                    y: fruit.y,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    color: fruit.color,
+                    size: Math.random() * 5 + 2,
+                    life: 1,
+                    decay: 0.02
+                });
             }
-        });
-    </script>
+
+            // Remove fruit after animation
+            setTimeout(() => {
+                const idx = this.fruits.indexOf(fruit);
+                if (idx > -1) this.fruits.splice(idx, 1);
+            }, 100);
+        }
+
+        explodeBomb(bomb) {
+            // Create explosion particles
+            for (let i = 0; i < 20; i++) {
+                this.particles.push({
+                    x: bomb.x,
+                    y: bomb.y,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 0.5) * 20,
+                    color: '#ff4757',
+                    size: Math.random() * 8 + 3,
+                    life: 1,
+                    decay: 0.015
+                });
+            }
+        }
+
+        spawnFruit() {
+            const colors = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd'];
+            const emojis = ['🍎', '🍊', '🍌', '🍇', '🍓', '🥝'];
+
+            const fruit = {
+                x: Math.random() * (this.canvas.width - 100) + 50,
+                y: this.canvas.height + 50,
+                vx: (Math.random() - 0.5) * 8,
+                vy: -Math.random() * 8 - 12,
+                size: Math.random() * 20 + 30,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                emoji: emojis[Math.floor(Math.random() * emojis.length)],
+                rotation: 0,
+                rotationSpeed: (Math.random() - 0.5) * 0.2,
+                sliced: false,
+                gravity: 0.3
+            };
+
+            this.fruits.push(fruit);
+        }
+
+        spawnBomb() {
+            const bomb = {
+                x: Math.random() * (this.canvas.width - 100) + 50,
+                y: this.canvas.height + 50,
+                vx: (Math.random() - 0.5) * 6,
+                vy: -Math.random() * 6 - 10,
+                size: 35,
+                rotation: 0,
+                rotationSpeed: (Math.random() - 0.5) * 0.1,
+                gravity: 0.3,
+                fuse: Math.random() * 0.5 + 0.5
+            };
+
+            this.bombs.push(bomb);
+        }
+
+        updateGame(deltaTime) {
+            if (this.gameState !== 'playing') return;
+
+            // Spawn fruits and bombs
+            const now = Date.now();
+            if (now - this.lastSpawnTime > this.spawnInterval) {
+                this.spawnFruit();
+
+                // 20% chance to spawn bomb
+                if (Math.random() < 0.2) {
+                    this.spawnBomb();
+                }
+
+                this.lastSpawnTime = now;
+
+                // Gradually increase difficulty
+                this.spawnInterval = Math.max(800, this.spawnInterval - 10);
+            }
+
+            // Update fruits
+            for (let i = this.fruits.length - 1; i >= 0; i--) {
+                const fruit = this.fruits[i];
+
+                fruit.x += fruit.vx;
+                fruit.y += fruit.vy;
+                fruit.vy += fruit.gravity;
+                fruit.rotation += fruit.rotationSpeed;
+
+                // Remove fruits that fall off screen or are sliced
+                if (fruit.y > this.canvas.height + 100) {
+                    if (!fruit.sliced) {
+                        this.lives--;
+                        if (this.lives <= 0) {
+                            this.gameOver();
+                            return;
+                        }
+                    }
+                    this.fruits.splice(i, 1);
+                }
+            }
+
+            // Update bombs
+            for (let i = this.bombs.length - 1; i >= 0; i--) {
+                const bomb = this.bombs[i];
+
+                bomb.x += bomb.vx;
+                bomb.y += bomb.vy;
+                bomb.vy += bomb.gravity;
+                bomb.rotation += bomb.rotationSpeed;
+                bomb.fuse -= deltaTime / 1000;
+
+                // Remove bombs that fall off screen
+                if (bomb.y > this.canvas.height + 100) {
+                    this.bombs.splice(i, 1);
+                }
+            }
+
+            // Update particles
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+                const particle = this.particles[i];
+
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.vy += 0.2; // gravity
+                particle.life -= particle.decay;
+
+                if (particle.life <= 0) {
+                    this.particles.splice(i, 1);
+                }
+            }
+
+            // Update combo
+            if (this.combo > 1 && now - this.comboTimer > this.comboThreshold) {
+                this.showCombo();
+                this.combo = 0;
+            }
+
+            this.updateUI();
+        }
+
+        showCombo() {
+            const comboDisplay = document.getElementById('comboDisplay');
+            comboDisplay.textContent = `${this.combo}x COMBO!`;
+            comboDisplay.style.opacity = '1';
+
+            setTimeout(() => {
+                comboDisplay.style.opacity = '0';
+            }, 1000);
+        }
+
+        render() {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+            // Draw slice trail
+            if (this.sliceTrail.length > 1) {
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                this.ctx.lineWidth = 3;
+                this.ctx.lineCap = 'round';
+                this.ctx.beginPath();
+
+                for (let i = 0; i < this.sliceTrail.length; i++) {
+                    const point = this.sliceTrail[i];
+                    if (i === 0) {
+                        this.ctx.moveTo(point.x, point.y);
+                    } else {
+                        this.ctx.lineTo(point.x, point.y);
+                    }
+                }
+
+                this.ctx.stroke();
+            }
+
+            // Draw fruits
+            this.fruits.forEach(fruit => {
+                this.ctx.save();
+                this.ctx.translate(fruit.x, fruit.y);
+                this.ctx.rotate(fruit.rotation);
+
+                if (fruit.sliced) {
+                    // Draw sliced fruit effect
+                    this.ctx.globalAlpha = 0.5;
+                    this.ctx.fillStyle = fruit.color;
+                    this.ctx.fillRect(-fruit.size/4, -fruit.size/2, fruit.size/2, fruit.size);
+                    this.ctx.fillRect(fruit.size/4, -fruit.size/2, fruit.size/2, fruit.size);
+                } else {
+                    // Draw whole fruit
+                    this.ctx.font = `${fruit.size}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(fruit.emoji, 0, 0);
+                }
+
+                this.ctx.restore();
+            });
+
+            // Draw bombs
+            this.bombs.forEach(bomb => {
+                this.ctx.save();
+                this.ctx.translate(bomb.x, bomb.y);
+                this.ctx.rotate(bomb.rotation);
+
+                // Bomb body
+                this.ctx.fillStyle = '#2f3640';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, bomb.size, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Fuse
+                this.ctx.strokeStyle = '#ff4757';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, -bomb.size);
+                this.ctx.lineTo(0, -bomb.size - 20);
+                this.ctx.stroke();
+
+                // Spark effect on fuse
+                if (Math.random() < 0.3) {
+                    this.ctx.fillStyle = '#feca57';
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, -bomb.size - 20, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                this.ctx.restore();
+            });
+
+            // Draw particles
+            this.particles.forEach(particle => {
+                this.ctx.save();
+                this.ctx.globalAlpha = particle.life;
+                this.ctx.fillStyle = particle.color;
+                this.ctx.beginPath();
+                this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.restore();
+            });
+        }
+
+        startGame() {
+            this.gameState = 'playing';
+            this.score = 0;
+            this.lives = 3;
+            this.combo = 0;
+            this.fruits = [];
+            this.bombs = [];
+            this.particles = [];
+            this.lastSpawnTime = Date.now();
+            this.spawnInterval = 2000;
+
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'block';
+
+            this.updateUI();
+        }
+
+        gameOver() {
+            this.gameState = 'gameOver';
+
+            if (this.score > this.highScore) {
+                this.highScore = this.score;
+                localStorage.setItem('fruitCutterHighScore', this.highScore.toString());
+            }
+
+            document.getElementById('finalScoreText').textContent = `Your Score: ${this.score}`;
+            document.getElementById('highScoreText').textContent = `High Score: ${this.highScore}`;
+            document.getElementById('gameOverScreen').style.display = 'flex';
+            document.getElementById('pauseBtn').style.display = 'none';
+        }
+
+        showMenu() {
+            this.gameState = 'menu';
+            document.getElementById('startScreen').style.display = 'flex';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            document.getElementById('pauseBtn').style.display = 'none';
+        }
+
+        togglePause() {
+            if (this.gameState === 'playing') {
+                this.gameState = 'paused';
+                document.getElementById('pauseBtn').textContent = 'Resume';
+            } else if (this.gameState === 'paused') {
+                this.gameState = 'playing';
+                document.getElementById('pauseBtn').textContent = 'Pause';
+            }
+        }
+
+        updateUI() {
+            document.getElementById('currentScore').textContent = this.score;
+            document.getElementById('highScore').textContent = this.highScore;
+
+            const livesDisplay = document.getElementById('livesDisplay');
+            livesDisplay.innerHTML = '';
+            for (let i = 0; i < this.lives; i++) {
+                livesDisplay.innerHTML += '<span class="heart">♥</span>';
+            }
+        }
+
+        gameLoop() {
+            const currentTime = Date.now();
+            const deltaTime = currentTime - this.lastFrameTime;
+            this.lastFrameTime = currentTime;
+
+            this.updateGame(deltaTime);
+            this.render();
+
+            requestAnimationFrame(() => this.gameLoop());
+        }
+    }
+
+    // Start the game when page loads
+    window.addEventListener('load', () => {
+        new FruitCutter();
+    });
+</script>
 </body>
 </html>
